@@ -25,6 +25,8 @@ int enB = 5;
 int in3 = 2;
 int in4 = 3;
 
+//Initialise the sensor
+sensors_event_t event;
 
 void setup() {
 
@@ -45,10 +47,9 @@ void setup() {
   digitalWrite(in2, LOW);
   digitalWrite(in3, LOW);
   digitalWrite(in4, LOW);
+
   
-  //Initialise the sensor
   mag.begin();
-  sensors_event_t event; 
   mag.getEvent(&event);
   
   //record initial heading value
@@ -132,7 +133,7 @@ void turning(){
   }
   
   //turn motors off
-  digitalWrite(in1, LOW)
+  digitalWrite(in1, LOW);
   digitalWrite(in2, LOW);
   digitalWrite(in3, LOW);
   digitalWrite(in4, LOW);
