@@ -1,18 +1,16 @@
+#include <LSM303.h>
 #include <Wire.h>
-#include <Adafruit_Sensor.h>
-#include <Adafruit_HMC5883_U.h>
+
 
 // ## THIS SECTION CONTAINS ADJUSTABLE COMPONENTS ##
 float turn = 10;     //Indicate when boat should begin turning
 int delayAmount = 500; //Indicate how long between each update of direction
 
-//Assigning unique ID to sensor
-Adafruit_HMC5883_Unified mag = Adafruit_HMC5883_Unified(12345);
+//float compassValue;
+float currentHeading;
 
-float compassValue;
-float heading;
 bool turned = false;
-byte PSDValue;
+byte PSDValue; //ensure correct type for ultrasonic sensor
 unsigned long timeOfTurn;
 
 //Left Motor Connections
@@ -25,10 +23,15 @@ int enB = 5;
 int in3 = 2;
 int in4 = 3;
 
-//Initialise the sensor
-sensors_event_t event;
+int counter = 0;
+
+// create compass object
+LSM303 compass;
 
 void setup() {
+
+  //for testing 
+  Serial.begin(9600);
 
   // set both motors to maximum speed {PWM 0-255}
   analogWrite(enA, 255); 
@@ -43,39 +46,57 @@ void setup() {
   pinMode(in4, OUTPUT);
 
   //Inital State of motors - All off
+  Serial.println("Both Motors off");
   digitalWrite(in1, LOW);
   digitalWrite(in2, LOW);
   digitalWrite(in3, LOW);
   digitalWrite(in4, LOW);
+  
 
-  
-  mag.begin();
-  mag.getEvent(&event);
-  
+  //initialize compass
+  Wire.begin();
+  compass.init();
+  compass.enableDefault();  
+
   //record initial heading value
-  float heading = atan2(event.magnetic.y, event.magnetic.x);
+  compass.read();
+  float currentHeading = compass.heading();
+
+  Serial.print("heading = ");
+  Serial.println(currentHeading);
   
 }
 
 void loop() {
-  
+
+  counter += 1;
+
   //attain new reading from compass
-  mag.getEvent(&event);
-  float compassValue = atan2(event.magnetic.y, event.magnetic.x);
+  compass.read();
+  float compassValue = compass.heading();
+
+  Serial.print("compassValue = ");
+  Serial.println(compassValue);
 
   //Attain PSD value
   PSDValue = analogRead(A0);
+  Serial.print("PSDValue = ");
+  Serial.println(PSDValue);
   
-  if(PSDValue > turn && !turned){
+  if(PSDValue < turn && !turned){
+    
     //changes heading value to be opposite direction and initiates turning procedure
-    heading += PI;
-    if(heading > 2 * PI){
-      heading -= 2 * PI;
+    currentHeading += 180;
+    if(currentHeading > 360){
+      currentHeading -= 360;
     }
+    
+    Serial.print("new heading = ");
+    Serial.println(currentHeading);
     turning();
   }
 
-   if(PSDValue > turn && turned && millis() - timeOfTurn > 3000){  
+   if(PSDValue < turn && turned && millis() - timeOfTurn > 3000){  
     //turns off motor if the boat reaches the second wall it sees
     //also checks if it has been at least 3000ms since turn
     digitalWrite(in1, LOW);
@@ -84,7 +105,8 @@ void loop() {
     digitalWrite(in4, LOW);
   }
   
-  if(compassValue > heading){
+  if(compassValue > currentHeading){ //TODO adjust to account for error in measurement
+    Serial.println("Right: on,  Left: off");
     //Turn right motor on, left motor off
     digitalWrite(in1, LOW);
     digitalWrite(in2, LOW);
@@ -92,7 +114,8 @@ void loop() {
     digitalWrite(in4, LOW);
   }
   
-  if(compassValue < heading){
+  if(compassValue < currentHeading){ //TODO adjust to account for error in measurement
+    Serial.println("Right: off, Left: on");
     //Turn left motor on, right motor off
     digitalWrite(in1, HIGH);
     digitalWrite(in2, LOW);
@@ -101,6 +124,7 @@ void loop() {
   }
   
   else{ 
+    Serial.println("Right: on, Left: on");
     // turn both motors on
     digitalWrite(in1, HIGH);
     digitalWrite(in2, LOW);
@@ -108,19 +132,18 @@ void loop() {
     digitalWrite(in4, LOW);
   }
 
-  
   delay(delayAmount);
 }
 
 void turning(){
-  
+  Serial.println("Turning initiated");
   turned = true;
 
   //attain new compass reading
-  mag.getEvent(&event);
-  float compassValue = atan2(event.magnetic.y, event.magnetic.x);
+  compass.read();
+  float compassValue = compass.heading(); 
   
-  while(compassValue != heading){
+  while(compassValue != currentHeading){ //TODO adjust to account for error in measurement
     // left motor on, right motor reverse
     digitalWrite(in1, HIGH);
     digitalWrite(in2, LOW);
@@ -128,8 +151,8 @@ void turning(){
     digitalWrite(in4, HIGH);
 
     //attain new compass reading
-    mag.getEvent(&event);
-    float compassValue = atan2(event.magnetic.y, event.magnetic.x);
+    compass.read();
+    compassValue = rounded(compass.heading());
   }
   
   //turn motors off
@@ -141,4 +164,11 @@ void turning(){
   //record time of turn to prevent false positive of second wall detection
   timeOfTurn = millis();
   
+}
+
+float rounded(float val){ //rounds to nearest 5
+  val = val/5;
+  val = round(val);
+  val = val*5;
+  return val;
 }
