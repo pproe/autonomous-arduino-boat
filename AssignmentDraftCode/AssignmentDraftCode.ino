@@ -3,14 +3,18 @@
 
 
 // ## THIS SECTION CONTAINS ADJUSTABLE COMPONENTS ##
-float turn = 10;     //Indicate when boat should begin turning
+float turn = 10;     //Indicate when boat should begin turning (cm)
 int delayAmount = 500; //Indicate how long between each update of direction
 
-//float compassValue;
+
 float currentHeading;
 
+//declaration of Ultrasonic Sensor values
+const int trig = 8;
+const int echo = 9;
+
+
 bool turned = false;
-byte PSDValue; //ensure correct type for ultrasonic sensor
 unsigned long timeOfTurn;
 
 //Left Motor Connections
@@ -45,6 +49,10 @@ void setup() {
   pinMode(in3, OUTPUT);
   pinMode(in4, OUTPUT);
 
+  //Setup of Ultrasonic sensor inputs
+  pinMode(trig, OUTPUT); 
+  pinMode(echo, INPUT);
+
   //Inital State of motors - All off
   Serial.println("Both Motors off");
   digitalWrite(in1, LOW);
@@ -69,6 +77,9 @@ void setup() {
 
 void loop() {
 
+  long PSDValue;
+
+
   counter += 1;
 
   //attain new reading from compass
@@ -79,7 +90,7 @@ void loop() {
   Serial.println(compassValue);
 
   //Attain PSD value
-  PSDValue = analogRead(A0);
+  PSDValue = distance();
   Serial.print("PSDValue = ");
   Serial.println(PSDValue);
   
@@ -166,9 +177,25 @@ void turning(){
   
 }
 
-float rounded(float val){ //rounds to nearest 5
+float rounded(float val){ //helper function: rounds to nearest 5
   val = val/5;
   val = round(val);
   val = val*5;
   return val;
+}
+
+long distance(){
+  long dist, time;
+  
+  digitalWrite(trig, LOW);
+  delayMicroseconds(2); 
+  digitalWrite(trig, HIGH); 
+  delayMicroseconds(10); 
+  digitalWrite(trig, LOW);
+
+  time = pulseIn(echo, HIGH); 
+  dist = (time/2) / 29.1;
+
+  return dist;
+
 }
