@@ -68,7 +68,7 @@ void setup() {
 
   //record initial heading value
   compass.read();
-  float currentHeading = compass.heading();
+  float currentHeading = rounded(compass.heading());
 
   Serial.print("heading = ");
   Serial.println(currentHeading);
@@ -79,12 +79,20 @@ void loop() {
 
   long PSDValue;
 
-
   counter += 1;
 
   //attain new reading from compass
   compass.read();
-  float compassValue = compass.heading();
+  float compassValue = rounded(compass.heading());
+
+  if(abs(compassValue - currentHeading) > 180){
+    if(compassValue < currentHeading){
+      compassValue += 360;
+    }
+    else{
+      compassValue -= 360;
+    }
+  }
 
   Serial.print("compassValue = ");
   Serial.println(compassValue);
@@ -125,7 +133,7 @@ void loop() {
     digitalWrite(in4, LOW);
   }
   
-  if(compassValue < currentHeading){ //TODO adjust to account for error in measurement
+  else if(compassValue < currentHeading){ //TODO adjust to account for error in measurement
     Serial.println("Right: off, Left: on");
     //Turn left motor on, right motor off
     digitalWrite(in1, HIGH);
@@ -156,6 +164,16 @@ void turning(){
   
   while(compassValue != currentHeading){ //TODO adjust to account for error in measurement
     // left motor on, right motor reverse
+
+    if(abs(compassValue - currentHeading) > 180){
+      if(compassValue < currentHeading){
+        compassValue += 360;
+      }
+      else{
+        compassValue -= 360;
+      }
+    }
+    
     digitalWrite(in1, HIGH);
     digitalWrite(in2, LOW);
     digitalWrite(in3, LOW);
@@ -164,6 +182,7 @@ void turning(){
     //attain new compass reading
     compass.read();
     compassValue = rounded(compass.heading());
+
   }
   
   //turn motors off

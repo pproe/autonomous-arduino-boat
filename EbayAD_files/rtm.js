@@ -1,0 +1,1 @@
+try{raptor.rtm.RtmManager.storeResponse([]);}catch(e){}
