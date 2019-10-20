@@ -3,11 +3,11 @@
 
 
 // ## THIS SECTION CONTAINS ADJUSTABLE COMPONENTS ##
-float turn = 10;     //Indicate when boat should begin turning (cm)
-int delayAmount = 500; //Indicate how long between each update of direction
+float turn = 30;     //Indicate when boat should begin turning (cm)
+int delayAmount = 250; //Indicate how long between each update of direction
 
 
-float currentHeading;
+int currentHeading;
 
 //declaration of Ultrasonic Sensor values
 const int trig = 8;
@@ -27,17 +27,16 @@ int enB = 5;
 int in3 = 2;
 int in4 = 3;
 
-int counter = 0;
 
 // create compass object
 LSM303 compass;
 
 void setup() {
 
-  //for testing 
+  //for testing/debugging
   Serial.begin(9600);
 
-  // set both motors to maximum speed {PWM 0-255}
+  // set both motors to half speed {PWM 0-255}
   analogWrite(enA, 255); 
   analogWrite(enB, 255);
   
@@ -68,7 +67,7 @@ void setup() {
 
   //record initial heading value
   compass.read();
-  float currentHeading = rounded(compass.heading());
+  currentHeading = rounded(compass.heading());
 
   Serial.print("heading = ");
   Serial.println(currentHeading);
@@ -79,11 +78,9 @@ void loop() {
 
   long PSDValue;
 
-  counter += 1;
-
   //attain new reading from compass
   compass.read();
-  float compassValue = rounded(compass.heading());
+  int compassValue = rounded(compass.heading());
 
   if(abs(compassValue - currentHeading) > 180){
     if(compassValue < currentHeading){
@@ -122,36 +119,43 @@ void loop() {
     digitalWrite(in2, LOW);
     digitalWrite(in3, LOW);
     digitalWrite(in4, LOW);
-  }
-  
-  if(compassValue > currentHeading){ //TODO adjust to account for error in measurement
-    Serial.println("Right: on,  Left: off");
-    //Turn right motor on, left motor off
-    digitalWrite(in1, LOW);
-    digitalWrite(in2, LOW);
-    digitalWrite(in3, HIGH);
-    digitalWrite(in4, LOW);
-  }
-  
-  else if(compassValue < currentHeading){ //TODO adjust to account for error in measurement
-    Serial.println("Right: off, Left: on");
-    //Turn left motor on, right motor off
-    digitalWrite(in1, HIGH);
-    digitalWrite(in2, LOW);
-    digitalWrite(in3, LOW);
-    digitalWrite(in4, LOW);   
-  }
-  
-  else{ 
-    Serial.println("Right: on, Left: on");
-    // turn both motors on
-    digitalWrite(in1, HIGH);
-    digitalWrite(in2, LOW);
-    digitalWrite(in3, HIGH);
-    digitalWrite(in4, LOW);
+    while(1){
+      // infinite loop. boat stops moving
+      delay(10000);
+    }
   }
 
+
+  
+  if(compassValue < currentHeading){ 
+
+    //Turn right motor on, left motor off
+    digitalWrite(in1, LOW);
+    digitalWrite(in2, HIGH);
+    digitalWrite(in3, LOW); 
+    digitalWrite(in4, LOW);   
+
+  }
+  else if (compassValue > currentHeading){
+
+    //Turn left motor on, right motor off
+    digitalWrite(in1, LOW);
+    digitalWrite(in2, LOW);
+    digitalWrite(in3, LOW);
+    digitalWrite(in4, HIGH);
+  }
+  else{ 
+
+    // turn both motors on
+    digitalWrite(in1, LOW);
+    digitalWrite(in2, HIGH);
+    digitalWrite(in3, LOW);
+    digitalWrite(in4, HIGH);
+  }
+  
+
   delay(delayAmount);
+  
 }
 
 void turning(){
@@ -160,9 +164,10 @@ void turning(){
 
   //attain new compass reading
   compass.read();
-  float compassValue = compass.heading(); 
-  
-  while(compassValue != currentHeading){ //TODO adjust to account for error in measurement
+  int compassValue = rounded(compass.heading()); 
+  while(compassValue < currentHeading-5 || compassValue > currentHeading + 5){ 
+    
+    //TODO adjust to account for error in measurement
     // left motor on, right motor reverse
 
     if(abs(compassValue - currentHeading) > 180){
@@ -174,15 +179,22 @@ void turning(){
       }
     }
     
-    digitalWrite(in1, HIGH);
-    digitalWrite(in2, LOW);
-    digitalWrite(in3, LOW);
-    digitalWrite(in4, HIGH);
+    digitalWrite(in1, LOW);
+    digitalWrite(in2, HIGH);
+    digitalWrite(in3, HIGH);
+    digitalWrite(in4, LOW);
 
     //attain new compass reading
-    compass.read();
-    compassValue = rounded(compass.heading());
 
+    //compassValue++;
+
+    compass.read();
+    compassValue = rounded(compass.heading()); 
+
+    Serial.print(compassValue);
+    Serial.print(" : ");
+    Serial.println(currentHeading);
+    
   }
   
   //turn motors off
@@ -191,17 +203,27 @@ void turning(){
   digitalWrite(in3, LOW);
   digitalWrite(in4, LOW);
   
+  
   //record time of turn to prevent false positive of second wall detection
   timeOfTurn = millis();
   
+  delay(delayAmount);
+  
 }
 
-float rounded(float val){ //helper function: rounds to nearest 5
+int rounded(float val){ //helper function: rounds to nearest 5
   val = val/5;
   val = round(val);
   val = val*5;
-  return val;
+  int int_val = (int) val;
+  return int_val;
 }
+
+
+float getHeading(){
+  
+}
+
 
 long distance(){
   long dist, time;
