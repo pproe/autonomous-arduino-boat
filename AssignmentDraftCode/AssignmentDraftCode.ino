@@ -16,6 +16,7 @@ const int echo = 9;
 
 bool turned = false;
 unsigned long timeOfTurn;
+unsigned long timeOfStart;
 
 //Left Motor Connections
 int enA = 6;
@@ -68,9 +69,13 @@ void setup() {
   //record initial heading value
   compass.read();
   currentHeading = rounded(compass.heading());
+  compass.m_min = (LSM303::vector<int16_t>){  -320,   -108,   +340};
+  compass.m_max = (LSM303::vector<int16_t>){  +819,   +565,   +617}; 
 
   Serial.print("heading = ");
   Serial.println(currentHeading);
+
+  timeOfStart = millis();
   
 }
 
@@ -99,7 +104,8 @@ void loop() {
   Serial.print("PSDValue = ");
   Serial.println(PSDValue);
   
-  if(PSDValue < turn && !turned){
+  if(PSDValue < turn && !turned && millis() - timeOfStart > 3000){
+    turned = true;
     
     //changes heading value to be opposite direction and initiates turning procedure
     currentHeading += 180;
@@ -130,19 +136,21 @@ void loop() {
   if(compassValue < currentHeading){ 
 
     //Turn right motor on, left motor off
-    digitalWrite(in1, LOW);
-    digitalWrite(in2, HIGH);
-    digitalWrite(in3, LOW); 
-    digitalWrite(in4, LOW);   
 
-  }
-  else if (compassValue > currentHeading){
 
-    //Turn left motor on, right motor off
     digitalWrite(in1, LOW);
     digitalWrite(in2, LOW);
     digitalWrite(in3, LOW);
     digitalWrite(in4, HIGH);
+
+  }
+  else if (compassValue > currentHeading){
+    digitalWrite(in1, LOW);
+    digitalWrite(in2, HIGH);
+    digitalWrite(in3, LOW); 
+    digitalWrite(in4, LOW); 
+    //Turn left motor on, right motor off
+
   }
   else{ 
 
@@ -160,7 +168,7 @@ void loop() {
 
 void turning(){
   Serial.println("Turning initiated");
-  turned = true;
+  
 
   //attain new compass reading
   compass.read();
@@ -219,10 +227,6 @@ int rounded(float val){ //helper function: rounds to nearest 5
   return int_val;
 }
 
-
-float getHeading(){
-  
-}
 
 
 long distance(){
